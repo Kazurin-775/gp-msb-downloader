@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use openssl::{bn::BigNum, dh::Dh, symm::Cipher};
+use rand::Rng;
 
 const DH_P: &[u8; 128] = include_bytes!("../config/dh-prime-p.bin");
 const DH_G: &[u8; 1] = &[2];
@@ -45,6 +46,12 @@ async fn api_fetch_tod(
     tokio::fs::create_dir(&working_dir)
         .await
         .context("create working directory")?;
+
+    if !config.no_delay {
+        let rest_millis = rand::thread_rng().gen_range(5_000..=30_000);
+        log::info!("Waiting for {} ms before continuing", rest_millis);
+        tokio::time::sleep(std::time::Duration::from_millis(rest_millis)).await;
+    }
 
     log::info!("Obtaining keys");
     let phase2_key = api::get_keys(&client, apis, id)
